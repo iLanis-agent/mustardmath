@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mustard math - the app</title>
+<style>
+  :root { --ink:#3a3013; --bg:#f7f4e8; --card:#fff; --accent:#8a6d1a; --accent2:#9e8024; --soft:#f0e5bc; }
+  * { box-sizing:border-box; margin:0; }
+  body { font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; background:var(--bg); color:var(--ink); padding:18px; }
+  .wrap { max-width:1180px; margin:0 auto; }
+  .lede { text-align:center; color:#6b5e35; margin:6px 0 16px; font-size:15px; max-width:760px; margin-left:auto; margin-right:auto; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:18px; }
+  .card { background:var(--card); border-radius:14px; padding:22px; box-shadow:0 1px 3px rgba(90,70,10,.08); }
+  h2 { font-size:19px; margin-bottom:14px; }
+  label { display:block; font-size:13px; color:#7a6d42; margin:10px 0 4px; }
+  input { width:100%; padding:9px 10px; border:1px solid #d9cd9c; border-radius:8px; font-size:15px; background:#fdfbf3; }
+  button { width:100%; margin-top:16px; padding:12px; border:0; border-radius:9px; background:var(--accent); color:#fff; font-size:15px; font-weight:600; cursor:pointer; }
+  button:hover { background:var(--accent2); }
+  .big { font-size:34px; font-weight:700; margin:14px 0 2px; }
+  .cap { font-size:13px; color:#7a6d42; }
+  .pill { display:inline-block; margin-top:10px; padding:5px 12px; border-radius:20px; font-size:13px; font-weight:600; }
+  .pill.gold { background:var(--soft); color:var(--accent); }
+  table { width:100%; margin-top:12px; border-collapse:collapse; font-size:14px; }
+  td { padding:7px 0; border-bottom:1px solid #e5dcb4; }
+  td:last-child { text-align:right; font-weight:600; }
+  .err { color:#a3341f; font-size:14px; margin-top:10px; }
+  .foot { margin-top:20px; font-size:12.5px; color:#857850; line-height:1.6; }
+  .foot a { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="lede">Mustard is seeds plus liquid, and the liquid is a multiple of the seeds. Weigh the seeds once and the whole jar is arithmetic.</p>
+  <div class="cards">
+    <div class="card">
+      <h2>Soak the seeds</h2>
+      <label for="s_g">Seed weight (g)</label>
+      <input id="s_g" type="number" value="100" min="0" step="5">
+      <label for="s_r">Soak ratio (mL per g - 2.2 is a labeled norm)</label>
+      <input id="s_r" type="number" value="2.2" min="0" step="0.1">
+      <button id="s_go">Pour the soak</button>
+      <div class="big" id="s_out">-</div>
+      <div class="cap">soak liquid (mL)</div>
+      <div class="pill gold" id="s_verdict" style="display:none"></div>
+      <div class="err" id="s_err"></div>
+    </div>
+    <div class="card">
+      <h2>Split the liquid</h2>
+      <label for="l_t">Total liquid (mL)</label>
+      <input id="l_t" type="number" value="300" min="0" step="10">
+      <label for="l_v">Vinegar parts</label>
+      <input id="l_v" type="number" value="2" min="0" step="1">
+      <label for="l_w">Water parts</label>
+      <input id="l_w" type="number" value="1" min="0" step="1">
+      <button id="l_go">Split it</button>
+      <div class="big" id="l_out">-</div>
+      <div class="cap">vinegar + water (mL)</div>
+      <div class="pill gold" id="l_verdict" style="display:none"></div>
+      <div class="err" id="l_err"></div>
+    </div>
+    <div class="card">
+      <h2>Batch the jars</h2>
+      <label for="b_j">Jars</label>
+      <input id="b_j" type="number" value="4" min="1" step="1">
+      <label for="b_m">Jar size (mL)</label>
+      <input id="b_m" type="number" value="200" min="50" step="10">
+      <button id="b_go">Size the batch</button>
+      <div class="big" id="b_out">-</div>
+      <div class="cap">prepared mustard (mL)</div>
+      <table id="b_rows" style="display:none">
+        <tr><td>seed at yield x2.5 (labeled)</td><td id="b_seed">-</td></tr>
+        <tr><td>soak at 2.2 (labeled)</td><td id="b_liq">-</td></tr>
+      </table>
+      <div class="err" id="b_err"></div>
+    </div>
+  </div>
+  <p class="foot">Exact ratios; the soak band, acid verdicts and yield figure are flagged craft norms - seed variety and grind change the result, and this measures nothing about your ingredients. <a href="index.html">Why this exists</a></p>
+</div>
+<script src="engine.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const g = id => parseFloat($(id).value);
+document.getElementById('s_go').onclick = () => {
+  $('s_err').textContent = '';
+  try {
+    const r = Mustardmath.soak(g('s_g'), g('s_r'));
+    $('s_out').textContent = r.liquidMl + ' mL';
+    const v = $('s_verdict'); v.textContent = r.verdict; v.style.display = 'inline-block';
+  } catch (e) { $('s_err').textContent = e.message; }
+};
+document.getElementById('l_go').onclick = () => {
+  $('l_err').textContent = '';
+  try {
+    const r = Mustardmath.split(g('l_t'), g('l_v'), g('l_w'));
+    $('l_out').textContent = r.vinegarMl + ' + ' + r.waterMl;
+    const v = $('l_verdict'); v.textContent = r.verdict; v.style.display = 'inline-block';
+  } catch (e) { $('l_err').textContent = e.message; }
+};
+document.getElementById('b_go').onclick = () => {
+  $('b_err').textContent = '';
+  try {
+    const r = Mustardmath.batch(g('b_j'), g('b_m'));
+    $('b_out').textContent = r.preparedMl + ' mL';
+    $('b_seed').textContent = r.seedG + ' g';
+    $('b_liq').textContent = r.liquidMl + ' mL';
+    $('b_rows').style.display = 'table';
+  } catch (e) { $('b_err').textContent = e.message; }
+};
+</script>
+</body>
+</html>
